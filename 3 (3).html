@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 关键：添加 viewport 适配手机 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>对话界面 - 带深度思考 + Markdown</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f7;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            /* 禁止手机端页面缩放 */
+            touch-action: manipulation;
+        }
+
+        /* 对话容器 */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            /* 防止内容被键盘顶乱 */
+            padding-bottom: 10px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.6;
+            word-wrap: break-word;
+            font-size: 15px;
+        }
+
+        .user-message {
+            background-color: #007aff;
+            color: white;
+            align-self: flex-end;
+        }
+
+        .assistant-message {
+            background-color: #e5e5ea;
+            color: #1c1c1e;
+            align-self: flex-start;
+        }
+
+        /* Markdown 样式优化 */
+        .assistant-message h1,
+        .assistant-message h2,
+        .assistant-message h3 {
+            margin: 0.5em 0 0.3em;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        .assistant-message p {
+            margin: 0.4em 0;
+        }
+        .assistant-message ul,
+        .assistant-message ol {
+            margin: 0.4em 0;
+            padding-left: 1.5em;
+        }
+        .assistant-message code {
+            background-color: rgba(0,0,0,0.08);
+            padding: 0.15em 0.3em;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .assistant-message pre {
+            background-color: rgba(0,0,0,0.08);
+            padding: 12px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.6em 0;
+        }
+        .assistant-message pre code {
+            background: none;
+            padding: 0;
+        }
+        .assistant-message blockquote {
+            border-left: 3px solid #888;
+            padding-left: 12px;
+            margin: 0.6em 0;
+            color: #555;
+        }
+        .assistant-message a {
+            color: #007aff;
+            text-decoration: none;
+        }
+        .assistant-message img {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            background-color: white;
+            padding: 12px 16px;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            /* 防止键盘弹出时顶乱布局 */
+            flex-shrink: 0;
+        }
+
+        /* 深度思考按钮 - 手机端适配 */
+        .mode-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border: 1px solid #d1d1d6;
+            border-radius: 18px;
+            background-color: white;
+            color: #1c1c1e;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            align-self: flex-start;
+        }
+
+        .mode-toggle-btn.active {
+            background-color: #007aff;
+            color: white;
+            border-color: #007aff;
+        }
+
+        .mode-toggle-btn .icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* 模式提示 */
+        .mode-indicator {
+            font-size: 12px;
+            color: #8e8e93;
+            margin-top: 2px;
+        }
+
+        /* 输入框 */
+        .input-box {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #d1d1d6;
+            border-radius: 24px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+            /* 手机端防止输入框被缩放 */
+            font-size: 16px;
+        }
+
+        #user-input:focus {
+            border-color: #007aff;
+        }
+
+        #send-btn {
+            padding: 12px 20px;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-size: 16px;
+            white-space: nowrap;
+        }
+    </style>
+    <!-- 引入 marked.js 用于解析 Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div class="chat-container" id="chat-container">
+        <!-- 对话消息会动态添加在这里 -->
+    </div>
+
+    <div class="input-area">
+        <!-- 深度思考切换按钮 -->
+        <button class="mode-toggle-btn" id="mode-toggle-btn">
+            <span class="icon">⊛</span>
+            <span class="text">深度思考</span>
+        </button>
+        <div class="mode-indicator" id="mode-indicator">当前模式：对话模式</div>
+
+        <div class="input-box">
+            <input type="text" id="user-input" placeholder="输入你的问题...">
+            <button id="send-btn">发送</button>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        let isThinkingMode = false; // 默认对话模式
+        const chatContainer = document.getElementById('chat-container');
+        const modeToggleBtn = document.getElementById('mode-toggle-btn');
+        const modeIndicator = document.getElementById('mode-indicator');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // 切换模式
+        modeToggleBtn.addEventListener('click', () => {
+            isThinkingMode = !isThinkingMode;
+            updateModeUI();
+        });
+
+        // 更新模式UI显示
+        function updateModeUI() {
+            if (isThinkingMode) {
+                modeToggleBtn.classList.add('active');
+                modeIndicator.textContent = '当前模式：深度思考模式';
+                modeToggleBtn.querySelector('.text').textContent = '关闭思考';
+            } else {
+                modeToggleBtn.classList.remove('active');
+                modeIndicator.textContent = '当前模式：对话模式';
+                modeToggleBtn.querySelector('.text').textContent = '深度思考';
+            }
+        }
+
+        // 发送消息
+        function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // 用户消息直接按文本显示
+            addMessage(text, 'user');
+            userInput.value = '';
+
+            // 模拟AI回复（支持Markdown）
+            setTimeout(() => {
+                let reply = '';
+                if (isThinkingMode) {
+                    reply = `【深度思考模式】\n我正在对这个问题进行深度分析："${text}"\n\n### 分析步骤\n1. 理解用户意图\n2. 拆解问题关键点\n3. 给出详细解答\n\n> 深度思考模式会提供更详细的推理过程`;
+                } else {
+                    reply = `你说的是："${text}"\n\n这是普通对话模式的回复，支持**加粗**、*斜体*、\`代码\` 和列表：\n- 项目1\n- 项目2`;
+                }
+                addMessage(reply, 'assistant');
+            }, 800);
+        }
+
+        // 添加消息到界面（支持Markdown）
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender === 'user' ? 'user-message' : 'assistant-message'}`;
+            
+            if (sender === 'assistant') {
+                // 解析Markdown并渲染为HTML
+                messageDiv.innerHTML = marked.parse(text);
+            } else {
+                // 用户消息直接显示文本（避免解析用户输入的Markdown）
+                messageDiv.textContent = text;
+            }
+
+            chatContainer.appendChild(messageDiv);
+            // 自动滚动到底部
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // 绑定发送事件
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
